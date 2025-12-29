@@ -9,7 +9,7 @@ Inkscape extension to generate living hinge patterns for laser-cut flexures. Sev
    - Linux (Snap): `~/snap/inkscape/current/.config/inkscape/extensions/`
    - macOS: `~/Library/Application Support/org.inkscape.Inkscape/config/inkscape/extensions/`
    - Windows: `%APPDATA%\\inkscape\\extensions\\`
-2. Copy files from this repo into your km-living-hing/ directory.
+2. Copy files from this repo into your km-living-hinge/ directory.
 3. Restart Inkscape. The extension appears under `Extensions -> Knox Makers -> KM Living Hinge`.
 
 ## Patterns
@@ -32,6 +32,6 @@ https://github.com/siteswapjuggler/Inkscape_LivingHinge
 Hatchfill from Evil Mad Scientists and their Eggbot extensions.  
 https://github.com/evil-mad/EggBot/
 
-The wonderful Meerk40t and it's Laser Tools of which each of these patterns exist (and more).  
+The wonderful Meerk40t and its Laser Tools of which each of these patterns exist (and more).  
 https://github.com/meerk40t
 
