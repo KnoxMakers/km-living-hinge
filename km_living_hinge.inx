@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<inkscape-extension xmlns="http://www.inkscape.org/namespace/inkscape/extension" id="km-living-hinge" version="1.0">
+  <name>KM Living Hinge</name>
+  <id>org.knoxmakers.km-living-hinge</id>
+  <param name="tab" type="notebook" default="line">
+    <page name="line" _gui-text="Line">
+      <param name="line_size_unit" type="optiongroup" appearance="combo" _gui-text="Units" default="mm">
+        <option value="mm">mm</option>
+        <option value="cm">cm</option>
+        <option value="in">in</option>
+        <option value="px">px</option>
+      </param>
+      <param name="line_angle_degrees" type="float" _gui-text="Angle (degrees)" min="-180" max="180">0.0</param>
+      <param name="line_length" type="float" _gui-text="Line length" min="0.01" max="1000">10.0</param>
+      <param name="line_gap" type="float" _gui-text="Line gap spacing" min="-1000" max="1000">2</param>
+      <param name="line_column_spacing" type="float" _gui-text="Line column spacing" min="-1000" max="1000">2</param>
+      <param name="line_offset" type="float" _gui-text="Alternate Offset" min="-1000" max="1000">5.0</param>
+    </page>
+    <page name="fishbone" _gui-text="Fishbone">
+      <param name="fishbone_size_unit" type="optiongroup" appearance="combo" _gui-text="Units" default="mm">
+        <option value="mm">mm</option>
+        <option value="cm">cm</option>
+        <option value="in">in</option>
+        <option value="px">px</option>
+      </param>
+      <param name="fishbone_angle_degrees" type="float" _gui-text="Angle (degrees)" min="-180" max="180">0.0</param>
+      <param name="fishbone_width" type="float" _gui-text="Fishbone width" min="0.01" max="1000">5</param>
+      <param name="fishbone_height" type="float" _gui-text="Fishbone height" min="0.01" max="1000">10</param>
+      <param name="fishbone_gap" type="float" _gui-text="Fishbone gap spacing" min="-1000" max="1000">0.0</param>
+      <param name="fishbone_column_spacing" type="float" _gui-text="Fishbone column spacing" min="-1000" max="1000">1</param>
+      <param name="fishbone_offset" type="float" _gui-text="Alternate Offset" min="-1000" max="1000">5</param>
+    </page>
+    <page name="cross" _gui-text="Cross">
+      <param name="cross_size_unit" type="optiongroup" appearance="combo" _gui-text="Units" default="mm">
+        <option value="mm">mm</option>
+        <option value="cm">cm</option>
+        <option value="in">in</option>
+        <option value="px">px</option>
+      </param>
+      <param name="cross_angle_degrees" type="float" _gui-text="Angle (degrees)" min="-180" max="180">0.0</param>
+      <param name="cross_width" type="float" _gui-text="Cross width" min="0.01" max="1000">10.0</param>
+      <param name="cross_height" type="float" _gui-text="Cross height" min="0.01" max="1000">5.0</param>
+      <param name="cross_gap" type="float" _gui-text="Cross gap spacing" min="-1000" max="1000">0</param>
+      <param name="cross_spacing" type="float" _gui-text="Cross column spacing" min="-1000" max="1000">2.0</param>
+      <param name="cross_offset" type="float" _gui-text="Alternate Offset" min="-1000" max="1000">5.5</param>
+    </page>
+    <page name="bezier" _gui-text="Bezier">
+      <param name="bezier_size_unit" type="optiongroup" appearance="combo" _gui-text="Units" default="mm">
+        <option value="mm">mm</option>
+        <option value="cm">cm</option>
+        <option value="in">in</option>
+        <option value="px">px</option>
+      </param>
+      <param name="bezier_angle_degrees" type="float" _gui-text="Angle (degrees)" min="-180" max="180">0.0</param>
+      <param name="bezier_width" type="float" _gui-text="Bezier width" min="0.01" max="1000">8.0</param>
+      <param name="bezier_height" type="float" _gui-text="Bezier height" min="0.01" max="1000">8.0</param>
+      <param name="bezier_gap" type="float" _gui-text="Bezier gap spacing" min="-1000" max="1000">1</param>
+      <param name="bezier_spacing" type="float" _gui-text="Bezier column spacing" min="-1000" max="1000">1</param>
+      <param name="bezier_tip" type="float" _gui-text="Bezier tip factor" min="-5" max="5">0.2</param>
+      <param name="bezier_center" type="float" _gui-text="Bezier center factor" min="-5" max="5">0.3</param>
+      <param name="bezier_offset" type="float" _gui-text="Alternate Offset" min="-1000" max="1000">4.5</param>
+    </page>
+    <page name="wave" _gui-text="Wave">
+      <param name="wave_size_unit" type="optiongroup" appearance="combo" _gui-text="Units" default="mm">
+        <option value="mm">mm</option>
+        <option value="cm">cm</option>
+        <option value="in">in</option>
+        <option value="px">px</option>
+      </param>
+      <param name="wave_angle_degrees" type="float" _gui-text="Angle (degrees)" min="-180" max="180">0.0</param>
+      <param name="wave_width" type="float" _gui-text="Wave width" min="0.01" max="1000">12.0</param>
+      <param name="wave_height" type="float" _gui-text="Wave height" min="0.01" max="1000">12.0</param>
+      <param name="wave_gap" type="float" _gui-text="Wave gap spacing" min="-1000" max="1000">0</param>
+      <param name="wave_spacing" type="float" _gui-text="Wave column spacing" min="-1000" max="1000">-3</param>
+      <param name="wave_a" type="float" _gui-text="Wave A (curvature)" min="-5" max="5">0.0</param>
+      <param name="wave_b" type="float" _gui-text="Wave B (curvature)" min="-5" max="5">0.0</param>
+      <param name="wave_offset" type="float" _gui-text="Alternate Offset" min="-1000" max="1000">6.0</param>
+    </page>
+    <page name="fabric" _gui-text="Fabric">
+      <param name="fabric_size_unit" type="optiongroup" appearance="combo" _gui-text="Units" default="mm">
+        <option value="mm">mm</option>
+        <option value="cm">cm</option>
+        <option value="in">in</option>
+        <option value="px">px</option>
+      </param>
+      <param name="fabric_angle_degrees" type="float" _gui-text="Angle (degrees)" min="-180" max="180">0.0</param>
+      <param name="fabric_width" type="float" _gui-text="Fabric width" min="0.01" max="1000">10.0</param>
+      <param name="fabric_height" type="float" _gui-text="Fabric height" min="0.01" max="1000">12.0</param>
+      <param name="fabric_gap" type="float" _gui-text="Fabric gap spacing" min="-1000" max="1000">2</param>
+      <param name="fabric_spacing" type="float" _gui-text="Fabric column spacing" min="-1000" max="1000">2</param>
+      <param name="fabric_offset" type="float" _gui-text="Alternate Offset" min="-1000" max="1000">5</param>
+    </page>
+  </param>
+  <script>
+    <command location="inx" interpreter="python">km_living_hinge.py</command>
+  </script>
+  <effect>
+    <object-type>all</object-type>
+    <effects-menu>
+      <submenu _name="Knox Makers"/>
+    </effects-menu>
+  </effect>
+</inkscape-extension>
