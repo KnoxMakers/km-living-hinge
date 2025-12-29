@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import math
 import inkex
-from inkex import bezier
+from inkex import ShapeElement, bezier
 from inkex.units import convert_unit
 from pattern_line import generate_line_pattern
 from pattern_fishbone import generate_fishbone_pattern
@@ -82,13 +82,53 @@ class KMLivingHinge(inkex.EffectExtension):
             raise inkex.AbortExtension(
                 "Select a shape (path, rectangle, circle, etc.); the hinge fills and is trimmed to your selection."
             )
-        target = selection[0]
-        bbox = target.bounding_box()
-        path_elem = target.to_path_element()
-        path = path_elem.path.transform(path_elem.composed_transform())
-        csp = path.to_superpath()
-        # Subdivide curves a bit to improve polygon approximation for inside tests
-        bezier.cspsubdiv(csp, 0.25)
+        selected_elems = list(selection)
+
+        def _uu(value, unit):
+            return float(self.svg.unittouu(f"{value}{unit}"))
+
+        def _superpath_to_polygons(superpath):
+            polys = []
+            for sub in superpath:
+                if not sub:
+                    continue
+                poly = []
+                for node in sub:
+                    if len(node) >= 2 and len(node[1]) == 2:
+                        poly.append((node[1][0], node[1][1]))
+                if len(poly) >= 3:
+                    # ensure closed polygon for robustness
+                    if poly[0] != poly[-1]:
+                        poly.append(poly[0])
+                    polys.append(poly)
+            return polys
+
+        seen_shapes = set()
+        shapes_to_process = []
+
+        def _iter_shapes(elem):
+            # Yield actual drawable shapes, but skip group containers themselves.
+            if isinstance(elem, ShapeElement) and not isinstance(elem, inkex.Group):
+                yield elem
+            if isinstance(elem, inkex.Group):
+                for child in elem.iterdescendants():
+                    if isinstance(child, ShapeElement) and not isinstance(child, inkex.Group):
+                        yield child
+                return
+            for child in elem.iterdescendants():
+                if isinstance(child, ShapeElement) and not isinstance(child, inkex.Group):
+                    yield child
+
+        for elem in selected_elems:
+            for shape in _iter_shapes(elem):
+                key = getattr(shape, "get_id", lambda: None)() or shape.get("id") or id(shape)
+                if key in seen_shapes:
+                    continue
+                seen_shapes.add(key)
+                shapes_to_process.append(shape)
+
+        if not shapes_to_process:
+            raise inkex.AbortExtension("Unable to read the selected shape geometry.")
 
         # Determine angle based on active tab
         angle_deg = (
@@ -107,98 +147,6 @@ class KMLivingHinge(inkex.EffectExtension):
         angle_rad = math.radians(float(angle_deg))
         cos_a = math.cos(angle_rad)
         sin_a = math.sin(angle_rad)
-        cx = bbox.center_x
-        cy = bbox.center_y
-
-        def _uu(value, unit):
-            return float(self.svg.unittouu(f"{value}{unit}"))
-
-        def _rot(pt, cosv, sinv):
-            x, y = pt
-            dx = x - cx
-            dy = y - cy
-            return (
-                cx + dx * cosv - dy * sinv,
-                cy + dx * sinv + dy * cosv,
-            )
-
-        def _superpath_to_polygons(superpath):
-            polys = []
-            for sub in superpath:
-                if not sub:
-                    continue
-                poly = []
-                for node in sub:
-                    if len(node) >= 2 and len(node[1]) == 2:
-                        poly.append((node[1][0], node[1][1]))
-                if len(poly) >= 3:
-                    # ensure closed polygon for robustness
-                    if poly[0] != poly[-1]:
-                        poly.append(poly[0])
-                    polys.append(poly)
-            return polys
-
-        polygons = _superpath_to_polygons(csp)
-        polygons_rot = [[_rot(p, math.cos(-angle_rad), math.sin(-angle_rad)) for p in poly] for poly in polygons]
-
-        def _point_in_poly(px, py, poly):
-            inside = False
-            n = len(poly)
-            for i in range(n - 1):
-                x1, y1 = poly[i]
-                x2, y2 = poly[i + 1]
-                if (y1 > py) != (y2 > py):
-                    x_int = (x2 - x1) * (py - y1) / (y2 - y1 + 1e-9) + x1
-                    if px < x_int:
-                        inside = not inside
-            return inside
-
-        def _point_in_polys(pt):
-            for poly in polygons_rot:
-                if _point_in_poly(pt[0], pt[1], poly):
-                    return True
-            return False
-
-        def _intervals_at_x(x_pos: float):
-            eps = 1e-9
-            intervals = []
-            for poly in polygons_rot:
-                hits = []
-                n = len(poly)
-                for i in range(n - 1):
-                    x1, y1 = poly[i]
-                    x2, y2 = poly[i + 1]
-                    if (x_pos < min(x1, x2) - eps) or (x_pos > max(x1, x2) + eps):
-                        continue
-                    if math.isclose(x1, x2, abs_tol=eps):
-                        if math.isclose(x_pos, x1, abs_tol=eps):
-                            hits.extend([y1, y2])
-                        continue
-                    t = (x_pos - x1) / (x2 - x1)
-                    if -eps <= t <= 1 + eps:
-                        y_hit = y1 + t * (y2 - y1)
-                        hits.append(y_hit)
-                hits.sort()
-                dedup = []
-                for y in hits:
-                    if not dedup or abs(y - dedup[-1]) > 1e-6:
-                        dedup.append(y)
-                if len(dedup) % 2 == 1:
-                    dedup = dedup[:-1]
-                for i in range(0, len(dedup) - 1, 2):
-                    y0 = dedup[i]
-                    y1 = dedup[i + 1]
-                    if y1 > y0 + eps:
-                        intervals.append((y0, y1))
-            return intervals
-
-        # Bounds in rotated space
-        all_x = [p[0] for poly in polygons_rot for p in poly]
-        all_y = [p[1] for poly in polygons_rot for p in poly]
-        origin_x = min(all_x)
-        origin_y = min(all_y)
-        hinge_width = max(all_x) - origin_x
-        hinge_height = max(all_y) - origin_y
 
         padding = 0.0
 
@@ -252,16 +200,6 @@ class KMLivingHinge(inkex.EffectExtension):
 
         stroke_width = float(self.svg.unittouu("0.1mm"))
 
-        usable_width = hinge_width - 2 * padding
-        usable_height = hinge_height - 2 * padding
-        if usable_width <= 0 or usable_height <= 0:
-            raise inkex.AbortExtension("Padding is too large for the hinge area.")
-
-        min_x = origin_x + padding
-        max_x = origin_x + hinge_width - padding
-        min_y = origin_y + padding
-        max_y = origin_y + hinge_height - padding
-
         parent = self.svg.get_current_layer()
         hinge_group = inkex.Group(id=self.svg.get_unique_id("km-living-hinge"))
         hinge_group.set("{http://www.inkscape.org/namespaces/inkscape}label", "KM Living Hinge")
@@ -274,117 +212,212 @@ class KMLivingHinge(inkex.EffectExtension):
             "stroke-linecap": "round",
         }
 
-        rot_fn = lambda pt: _rot(pt, cos_a, sin_a)
+        for shape in shapes_to_process:
+            shape_path = shape.to_path_element().path.transform(shape.composed_transform())
+            csp = shape_path.to_superpath()
+            bezier.cspsubdiv(csp, 0.25)
+            polygons = _superpath_to_polygons(csp)
+            if not polygons:
+                continue
 
-        if pattern_type == "fishbone":
-            generate_fishbone_pattern(
-                polygons_rot=polygons_rot,
+            # Compute rotation center from the transformed polygons so grouping/parent transforms
+            # do not shift the hinge origin.
+            all_poly_x = [p[0] for poly in polygons for p in poly]
+            all_poly_y = [p[1] for poly in polygons for p in poly]
+            cx = (min(all_poly_x) + max(all_poly_x)) / 2.0
+            cy = (min(all_poly_y) + max(all_poly_y)) / 2.0
+
+            def _rot(pt, cosv, sinv):
+                x, y = pt
+                dx = x - cx
+                dy = y - cy
+                return (
+                    cx + dx * cosv - dy * sinv,
+                    cy + dx * sinv + dy * cosv,
+                )
+
+            polygons_rot = [[_rot(p, math.cos(-angle_rad), math.sin(-angle_rad)) for p in poly] for poly in polygons]
+
+            def _point_in_poly(px, py, poly):
+                inside = False
+                n = len(poly)
+                for i in range(n - 1):
+                    x1, y1 = poly[i]
+                    x2, y2 = poly[i + 1]
+                    if (y1 > py) != (y2 > py):
+                        x_int = (x2 - x1) * (py - y1) / (y2 - y1 + 1e-9) + x1
+                        if px < x_int:
+                            inside = not inside
+                return inside
+
+            def _point_in_polys(pt):
+                for poly in polygons_rot:
+                    if _point_in_poly(pt[0], pt[1], poly):
+                        return True
+                return False
+
+            def _intervals_at_x(x_pos: float):
+                eps = 1e-9
+                intervals = []
+                for poly in polygons_rot:
+                    hits = []
+                    n = len(poly)
+                    for i in range(n - 1):
+                        x1, y1 = poly[i]
+                        x2, y2 = poly[i + 1]
+                        if (x_pos < min(x1, x2) - eps) or (x_pos > max(x1, x2) + eps):
+                            continue
+                        if math.isclose(x1, x2, abs_tol=eps):
+                            if math.isclose(x_pos, x1, abs_tol=eps):
+                                hits.extend([y1, y2])
+                            continue
+                        t = (x_pos - x1) / (x2 - x1)
+                        if -eps <= t <= 1 + eps:
+                            y_hit = y1 + t * (y2 - y1)
+                            hits.append(y_hit)
+                    hits.sort()
+                    dedup = []
+                    for y in hits:
+                        if not dedup or abs(y - dedup[-1]) > 1e-6:
+                            dedup.append(y)
+                    if len(dedup) % 2 == 1:
+                        dedup = dedup[:-1]
+                    for i in range(0, len(dedup) - 1, 2):
+                        y0 = dedup[i]
+                        y1 = dedup[i + 1]
+                        if y1 > y0 + eps:
+                            intervals.append((y0, y1))
+                return intervals
+
+            # Bounds in rotated space
+            all_x = [p[0] for poly in polygons_rot for p in poly]
+            all_y = [p[1] for poly in polygons_rot for p in poly]
+            origin_x = min(all_x)
+            origin_y = min(all_y)
+            hinge_width = max(all_x) - origin_x
+            hinge_height = max(all_y) - origin_y
+
+            usable_width = hinge_width - 2 * padding
+            usable_height = hinge_height - 2 * padding
+            if usable_width <= 0 or usable_height <= 0:
+                continue
+
+            min_x = origin_x + padding
+            max_x = origin_x + hinge_width - padding
+            min_y = origin_y + padding
+            max_y = origin_y + hinge_height - padding
+
+            rot_fn = lambda pt: _rot(pt, cos_a, sin_a)
+
+            if pattern_type == "fishbone":
+                generate_fishbone_pattern(
+                    polygons_rot=polygons_rot,
+                    min_x=min_x,
+                    max_x=max_x,
+                    min_y=min_y,
+                    max_y=max_y,
+                    column_spacing=column_spacing,
+                    pattern_width=pattern_width,
+                    slot_length=slot_length,
+                    slot_gap=slot_gap,
+                    stroke_style=stroke_style,
+                    hinge_group=hinge_group,
+                    rot_fn=rot_fn,
+                    offset_factor=column_offset_factor,
+                    point_in_polys=_point_in_polys,
+                )
+                continue
+            if pattern_type == "cross":
+                generate_cross_pattern(
+                    polygons_rot=polygons_rot,
+                    min_x=min_x,
+                    max_x=max_x,
+                    min_y=min_y,
+                    max_y=max_y,
+                    cell_width=pattern_width,
+                    cell_height=slot_length,
+                    gap=slot_gap,
+                    spacing=column_spacing,
+                    stroke_style=stroke_style,
+                    hinge_group=hinge_group,
+                    rot_fn=rot_fn,
+                    offset_factor=column_offset_factor,
+                    point_in_polys=_point_in_polys,
+                )
+                continue
+            if pattern_type == "bezier":
+                generate_bezier_pattern(
+                    polygons_rot=polygons_rot,
+                    min_x=min_x,
+                    max_x=max_x,
+                    min_y=min_y,
+                    max_y=max_y,
+                    cell_width=pattern_width,
+                    cell_height=slot_length,
+                    gap=slot_gap,
+                    spacing=column_spacing,
+                    anchor_tip=opts.bezier_tip,
+                    anchor_center=opts.bezier_center,
+                    stroke_style=stroke_style,
+                    hinge_group=hinge_group,
+                    rot_fn=rot_fn,
+                    offset_factor=column_offset_factor,
+                    point_in_polys=_point_in_polys,
+                )
+                continue
+            if pattern_type == "wave":
+                generate_wave_pattern(
+                    polygons_rot=polygons_rot,
+                    min_x=min_x,
+                    max_x=max_x,
+                    min_y=min_y,
+                    max_y=max_y,
+                    cell_width=pattern_width,
+                    cell_height=slot_length,
+                    gap=slot_gap,
+                    spacing=column_spacing,
+                    param_a=opts.wave_a,
+                    param_b=opts.wave_b,
+                    stroke_style=stroke_style,
+                    hinge_group=hinge_group,
+                    rot_fn=rot_fn,
+                    offset_factor=column_offset_factor,
+                    point_in_polys=_point_in_polys,
+                )
+                continue
+            if pattern_type == "fabric":
+                generate_fabric_pattern(
+                    polygons_rot=polygons_rot,
+                    min_x=min_x,
+                    max_x=max_x,
+                    min_y=min_y,
+                    max_y=max_y,
+                    cell_width=pattern_width,
+                    cell_height=slot_length,
+                    gap=slot_gap,
+                    spacing=column_spacing,
+                    stroke_style=stroke_style,
+                    hinge_group=hinge_group,
+                    rot_fn=rot_fn,
+                    offset_factor=column_offset_factor,
+                    point_in_polys=_point_in_polys,
+                )
+                continue
+
+            generate_line_pattern(
+                intervals_fn=_intervals_at_x,
                 min_x=min_x,
                 max_x=max_x,
                 min_y=min_y,
                 max_y=max_y,
                 column_spacing=column_spacing,
-                pattern_width=pattern_width,
                 slot_length=slot_length,
                 slot_gap=slot_gap,
                 stroke_style=stroke_style,
                 hinge_group=hinge_group,
                 rot_fn=rot_fn,
                 offset_factor=column_offset_factor,
-                point_in_polys=_point_in_polys,
             )
-            return
-        if pattern_type == "cross":
-            generate_cross_pattern(
-                polygons_rot=polygons_rot,
-                min_x=min_x,
-                max_x=max_x,
-                min_y=min_y,
-                max_y=max_y,
-                cell_width=pattern_width,
-                cell_height=slot_length,
-                gap=slot_gap,
-                spacing=column_spacing,
-                stroke_style=stroke_style,
-                hinge_group=hinge_group,
-                rot_fn=rot_fn,
-                offset_factor=column_offset_factor,
-                point_in_polys=_point_in_polys,
-            )
-            return
-        if pattern_type == "bezier":
-            generate_bezier_pattern(
-                polygons_rot=polygons_rot,
-                min_x=min_x,
-                max_x=max_x,
-                min_y=min_y,
-                max_y=max_y,
-                cell_width=pattern_width,
-                cell_height=slot_length,
-                gap=slot_gap,
-                spacing=column_spacing,
-                anchor_tip=opts.bezier_tip,
-                anchor_center=opts.bezier_center,
-                stroke_style=stroke_style,
-                hinge_group=hinge_group,
-                rot_fn=rot_fn,
-                offset_factor=column_offset_factor,
-                point_in_polys=_point_in_polys,
-            )
-            return
-        if pattern_type == "wave":
-            generate_wave_pattern(
-                polygons_rot=polygons_rot,
-                min_x=min_x,
-                max_x=max_x,
-                min_y=min_y,
-                max_y=max_y,
-                cell_width=pattern_width,
-                cell_height=slot_length,
-                gap=slot_gap,
-                spacing=column_spacing,
-                param_a=opts.wave_a,
-                param_b=opts.wave_b,
-                stroke_style=stroke_style,
-                hinge_group=hinge_group,
-                rot_fn=rot_fn,
-                offset_factor=column_offset_factor,
-                point_in_polys=_point_in_polys,
-            )
-            return
-        if pattern_type == "fabric":
-            generate_fabric_pattern(
-                polygons_rot=polygons_rot,
-                min_x=min_x,
-                max_x=max_x,
-                min_y=min_y,
-                max_y=max_y,
-                cell_width=pattern_width,
-                cell_height=slot_length,
-                gap=slot_gap,
-                spacing=column_spacing,
-                stroke_style=stroke_style,
-                hinge_group=hinge_group,
-                rot_fn=rot_fn,
-                offset_factor=column_offset_factor,
-                point_in_polys=_point_in_polys,
-            )
-            return
-
-        generate_line_pattern(
-            intervals_fn=_intervals_at_x,
-            min_x=min_x,
-            max_x=max_x,
-            min_y=min_y,
-            max_y=max_y,
-            column_spacing=column_spacing,
-            slot_length=slot_length,
-            slot_gap=slot_gap,
-            stroke_style=stroke_style,
-            hinge_group=hinge_group,
-            rot_fn=rot_fn,
-            offset_factor=column_offset_factor,
-        )
 
 
 if __name__ == "__main__":
