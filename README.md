@@ -10,7 +10,7 @@ A highly opinionated Inkscape extension to generate living hinge patterns for la
    - macOS: `~/Library/Application Support/org.inkscape.Inkscape/config/inkscape/extensions/`
    - Windows: `%APPDATA%\\inkscape\\extensions\\`
 2. Copy files from this repo into your km-living-hinge/ directory.
-3. Restart Inkscape. The extension appears under `Extensions -> Knox Makers -> KM Living Hinge`.
+3. Restart Inkscape. The extension appears under `Extensions > Knox Makers > Laser > Living Hinge`.
 
 ## Patterns
 
