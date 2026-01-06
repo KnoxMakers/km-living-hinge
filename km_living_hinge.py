@@ -1,79 +1,48 @@
 #!/usr/bin/env python3
+
+#################################################
+#
+#  KM Living Hinge 
+#  A highly opinionated living hinge generator
+#
+#  With love, by Jondale
+#
+#################################################
+
 import math
 import inkex
 from inkex import ShapeElement, bezier
-from inkex.units import convert_unit
-from pattern_line import generate_line_pattern
-from pattern_fishbone import generate_fishbone_pattern
-from pattern_cross import generate_cross_pattern
-from pattern_bezier import generate_bezier_pattern
-from pattern_wave import generate_wave_pattern
-from pattern_fabric import generate_fabric_pattern
+
+from shapes import get_shape, get_config
+from livinghinge import generate_hinge, segments_to_svg_paths
 
 
 class KMLivingHinge(inkex.EffectExtension):
     def add_arguments(self, pars) -> None:
-        pars.add_argument("--tab", default="line")
-        pars.add_argument("--line_size_unit", default="mm")
-        pars.add_argument("--line_angle_degrees", type=float, default=0.0)
-        pars.add_argument("--line_column_spacing", type=float, default=1.0)
-        pars.add_argument("--line_length", type=float, default=5.0)
-        pars.add_argument("--line_gap", type=float, default=1.0)
-        pars.add_argument("--line_offset", type=float, default=0.0)
-        pars.add_argument("--fishbone_size_unit", default="mm")
-        pars.add_argument("--fishbone_angle_degrees", type=float, default=0.0)
-        pars.add_argument("--fishbone_column_spacing", type=float, default=1.0)
-        pars.add_argument("--fishbone_width", type=float, default=3.0)
-        pars.add_argument("--fishbone_height", type=float, default=5.0)
-        pars.add_argument("--fishbone_gap", type=float, default=1.0)
-        pars.add_argument("--fishbone_offset", type=float, default=0.0)
-        pars.add_argument("--cross_size_unit", default="mm")
-        pars.add_argument("--cross_angle_degrees", type=float, default=0.0)
-        pars.add_argument("--cross_width", type=float, default=10.0)
-        pars.add_argument("--cross_height", type=float, default=12.0)
-        pars.add_argument("--cross_gap", type=float, default=-1.5)
-        pars.add_argument("--cross_spacing", type=float, default=-0.5)
-        pars.add_argument("--cross_offset", type=float, default=0.0)
-        pars.add_argument("--bezier_size_unit", default="mm")
-        pars.add_argument("--bezier_angle_degrees", type=float, default=0.0)
-        pars.add_argument("--bezier_width", type=float, default=10.0)
-        pars.add_argument("--bezier_height", type=float, default=12.0)
-        pars.add_argument("--bezier_gap", type=float, default=-1.5)
-        pars.add_argument("--bezier_spacing", type=float, default=-0.5)
-        pars.add_argument("--bezier_tip", type=float, default=0.2)
-        pars.add_argument("--bezier_center", type=float, default=0.3)
-        pars.add_argument("--bezier_offset", type=float, default=0.0)
-        pars.add_argument("--wave_size_unit", default="mm")
-        pars.add_argument("--wave_angle_degrees", type=float, default=0.0)
-        pars.add_argument("--wave_width", type=float, default=10.0)
-        pars.add_argument("--wave_height", type=float, default=12.0)
-        pars.add_argument("--wave_gap", type=float, default=-1.5)
-        pars.add_argument("--wave_spacing", type=float, default=-0.5)
-        pars.add_argument("--wave_a", type=float, default=0.0)
-        pars.add_argument("--wave_b", type=float, default=0.0)
-        pars.add_argument("--wave_offset", type=float, default=0.0)
-        pars.add_argument("--fabric_size_unit", default="mm")
-        pars.add_argument("--fabric_angle_degrees", type=float, default=0.0)
-        pars.add_argument("--fabric_width", type=float, default=10.0)
-        pars.add_argument("--fabric_height", type=float, default=12.0)
-        pars.add_argument("--fabric_gap", type=float, default=-1.5)
-        pars.add_argument("--fabric_spacing", type=float, default=-0.5)
-        pars.add_argument("--fabric_offset", type=float, default=0.0)
-
-    def _selection_bbox(self):
-        selection = getattr(self.svg, "selection", None)
-        if not selection:
-            return None
-        try:
-            if len(selection) == 0:
-                return None
-        except TypeError:
-            return None
-        return selection.bounding_box()  # user units (px)
+        pars.add_argument("--units", default="mm")
+        pars.add_argument("--angle", type=float, default=0.0)
+        pars.add_argument("--type", default="line")
+        pars.add_argument("--line_height_pct", type=int, default=80)
+        pars.add_argument("--line_x_spacing", type=float, default=2.0)
+        pars.add_argument("--line_y_spacing", type=float, default=2.0)
+        pars.add_argument("--fishbone_height", type=float, default=10.0)
+        pars.add_argument("--fishbone_width", type=float, default=5.0)
+        pars.add_argument("--fishbone_x_spacing", type=float, default=2.0)
+        pars.add_argument("--fishbone_y_spacing", type=float, default=2.0)
+        pars.add_argument("--cross_height", type=float, default=10.0)
+        pars.add_argument("--cross_width", type=float, default=5.0)
+        pars.add_argument("--bezier_height", type=float, default=10.0)
+        pars.add_argument("--bezier_width", type=float, default=5.0)
+        pars.add_argument("--bezier_x_spacing", type=float, default=2.0)
+        pars.add_argument("--bezier_y_spacing", type=float, default=2.0)
+        pars.add_argument("--wave_height", type=float, default=10.0)
+        pars.add_argument("--wave_width", type=float, default=5.0)
+        pars.add_argument("--fabric_height", type=float, default=10.0)
+        pars.add_argument("--fabric_width", type=float, default=5.0)
 
     def effect(self) -> None:
         opts = self.options
-        pattern_type = opts.tab or "line"
+        pattern_type = opts.type or "line"
         if pattern_type not in ("line", "fishbone", "cross", "bezier", "wave", "fabric"):
             pattern_type = "line"
 
@@ -97,7 +66,6 @@ class KMLivingHinge(inkex.EffectExtension):
                     if len(node) >= 2 and len(node[1]) == 2:
                         poly.append((node[1][0], node[1][1]))
                 if len(poly) >= 3:
-                    # ensure closed polygon for robustness
                     if poly[0] != poly[-1]:
                         poly.append(poly[0])
                     polys.append(poly)
@@ -107,7 +75,6 @@ class KMLivingHinge(inkex.EffectExtension):
         shapes_to_process = []
 
         def _iter_shapes(elem):
-            # Yield actual drawable shapes, but skip group containers themselves.
             if isinstance(elem, ShapeElement) and not isinstance(elem, inkex.Group):
                 yield elem
             if isinstance(elem, inkex.Group):
@@ -130,87 +97,81 @@ class KMLivingHinge(inkex.EffectExtension):
         if not shapes_to_process:
             raise inkex.AbortExtension("Unable to read the selected shape geometry.")
 
-        # Determine angle based on active tab
-        angle_deg = (
-            opts.line_angle_degrees
-            if pattern_type == "line"
-            else opts.fishbone_angle_degrees
-            if pattern_type == "fishbone"
-            else opts.cross_angle_degrees
-            if pattern_type == "cross"
-            else opts.bezier_angle_degrees
-            if pattern_type == "bezier"
-            else opts.wave_angle_degrees
-            if pattern_type == "wave"
-            else opts.fabric_angle_degrees
-        )
-        angle_rad = math.radians(float(angle_deg))
-        cos_a = math.cos(angle_rad)
-        sin_a = math.sin(angle_rad)
+        min_x, min_y, max_x, max_y = float('inf'), float('inf'), float('-inf'), float('-inf')
+        for shape in shapes_to_process:
+            bbox = shape.bounding_box(shape.composed_transform())
+            if bbox:
+                min_x = min(min_x, bbox.left)
+                min_y = min(min_y, bbox.top)
+                max_x = max(max_x, bbox.right)
+                max_y = max(max_y, bbox.bottom)
+        bbox_width = max_x - min_x
+        bbox_height = max_y - min_y
+        bbox = (min_x, min_y, bbox_width, bbox_height)
 
-        padding = 0.0
+        unit = opts.units
+        angle_rad = math.radians(float(opts.angle))
 
         if pattern_type == "line":
-            unit = opts.line_size_unit
-            column_spacing = _uu(opts.line_column_spacing, unit)
-            slot_length = _uu(opts.line_length, unit)
-            slot_gap = _uu(opts.line_gap, unit)
-            pattern_width = 0.0  # unused
-            column_offset_factor = _uu(opts.line_offset, unit)
+            height = opts.line_height_pct / 100.0
+            width = 0
+            x_spacing = _uu(opts.line_x_spacing, unit)
+            y_spacing = _uu(opts.line_y_spacing, unit)
         elif pattern_type == "fishbone":
-            unit = opts.fishbone_size_unit
-            column_spacing = _uu(opts.fishbone_column_spacing, unit)
-            slot_length = _uu(opts.fishbone_height, unit)
-            slot_gap = _uu(opts.fishbone_gap, unit)
-            pattern_width = _uu(opts.fishbone_width, unit)
-            column_offset_factor = _uu(opts.fishbone_offset, unit)
+            height = _uu(opts.fishbone_height, unit)
+            width = _uu(opts.fishbone_width, unit)
+            x_spacing = _uu(opts.fishbone_x_spacing, unit)
+            y_spacing = _uu(opts.fishbone_y_spacing, unit)
         elif pattern_type == "cross":
-            unit = opts.cross_size_unit
-            column_spacing = _uu(opts.cross_spacing, unit)
-            slot_length = _uu(opts.cross_height, unit)
-            slot_gap = _uu(opts.cross_gap, unit)
-            pattern_width = _uu(opts.cross_width, unit)
-            column_offset_factor = _uu(opts.cross_offset, unit)
+            height = _uu(opts.cross_height, unit)
+            width = _uu(opts.cross_width, unit)
+            x_spacing = 0
+            y_spacing = 0
         elif pattern_type == "bezier":
-            unit = opts.bezier_size_unit
-            column_spacing = _uu(opts.bezier_spacing, unit)
-            slot_length = _uu(opts.bezier_height, unit)
-            slot_gap = _uu(opts.bezier_gap, unit)
-            pattern_width = _uu(opts.bezier_width, unit)
-            column_offset_factor = _uu(opts.bezier_offset, unit)
+            height = _uu(opts.bezier_height, unit)
+            width = _uu(opts.bezier_width, unit)
+            x_spacing = _uu(opts.bezier_x_spacing, unit)
+            y_spacing = _uu(opts.bezier_y_spacing, unit)
         elif pattern_type == "wave":
-            unit = opts.wave_size_unit
-            column_spacing = _uu(opts.wave_spacing, unit)
-            slot_length = _uu(opts.wave_height, unit)
-            slot_gap = _uu(opts.wave_gap, unit)
-            pattern_width = _uu(opts.wave_width, unit)
-            column_offset_factor = _uu(opts.wave_offset, unit)
-        else:  # fabric
-            unit = opts.fabric_size_unit
-            column_spacing = _uu(opts.fabric_spacing, unit)
-            slot_length = _uu(opts.fabric_height, unit)
-            slot_gap = _uu(opts.fabric_gap, unit)
-            pattern_width = _uu(opts.fabric_width, unit)
-            column_offset_factor = _uu(opts.fabric_offset, unit)
+            height = _uu(opts.wave_height, unit)
+            width = _uu(opts.wave_width, unit)
+            x_spacing = 0
+            y_spacing = 0
+        elif pattern_type == "fabric":
+            height = _uu(opts.fabric_height, unit)
+            width = _uu(opts.fabric_width, unit)
+            x_spacing = 0
+            y_spacing = 0
+        else:
+            height = opts.line_height_pct / 100.0
+            width = 0
+            x_spacing = _uu(opts.line_x_spacing, unit)
+            y_spacing = _uu(opts.line_y_spacing, unit)
 
-        if slot_length <= 0:
-            raise inkex.AbortExtension("Pattern height/length must be greater than zero.")
-        if pattern_type == "cross" and math.isclose(pattern_width + column_spacing, 0.0, abs_tol=1e-6):
-            raise inkex.AbortExtension("Cross spacing results in zero horizontal step.")
+        config_fn = get_config(pattern_type)
+        height, width, x_spacing, y_spacing, y_offset = config_fn(
+            height, width, x_spacing, y_spacing, bbox
+        )
 
-        stroke_width = float(self.svg.unittouu("0.1mm"))
+        if height <= 0:
+            raise inkex.AbortExtension("Height must be greater than zero.")
+        if width < 0:
+            raise inkex.AbortExtension("Width must not be negative.")
 
-        parent = self.svg.get_current_layer()
-        hinge_group = inkex.Group(id=self.svg.get_unique_id("km-living-hinge"))
-        hinge_group.set("{http://www.inkscape.org/namespaces/inkscape}label", "KM Living Hinge")
-        parent.add(hinge_group)
-
+        stroke_width = float(self.svg.unittouu("0.25mm"))
         stroke_style = {
             "stroke": "#000000",
             "stroke-width": str(stroke_width),
             "fill": "none",
             "stroke-linecap": "round",
         }
+
+        parent = self.svg.get_current_layer()
+        hinge_group = inkex.Group(id=self.svg.get_unique_id("km-living-hinge"))
+        hinge_group.set("{http://www.inkscape.org/namespaces/inkscape}label", "KM Living Hinge")
+        parent.add(hinge_group)
+
+        shape_fn = get_shape(pattern_type)
 
         for shape in shapes_to_process:
             shape_path = shape.to_path_element().path.transform(shape.composed_transform())
@@ -220,204 +181,18 @@ class KMLivingHinge(inkex.EffectExtension):
             if not polygons:
                 continue
 
-            # Compute rotation center from the transformed polygons so grouping/parent transforms
-            # do not shift the hinge origin.
-            all_poly_x = [p[0] for poly in polygons for p in poly]
-            all_poly_y = [p[1] for poly in polygons for p in poly]
-            cx = (min(all_poly_x) + max(all_poly_x)) / 2.0
-            cy = (min(all_poly_y) + max(all_poly_y)) / 2.0
-
-            def _rot(pt, cosv, sinv):
-                x, y = pt
-                dx = x - cx
-                dy = y - cy
-                return (
-                    cx + dx * cosv - dy * sinv,
-                    cy + dx * sinv + dy * cosv,
-                )
-
-            polygons_rot = [[_rot(p, math.cos(-angle_rad), math.sin(-angle_rad)) for p in poly] for poly in polygons]
-
-            def _point_in_poly(px, py, poly):
-                inside = False
-                n = len(poly)
-                for i in range(n - 1):
-                    x1, y1 = poly[i]
-                    x2, y2 = poly[i + 1]
-                    if (y1 > py) != (y2 > py):
-                        x_int = (x2 - x1) * (py - y1) / (y2 - y1 + 1e-9) + x1
-                        if px < x_int:
-                            inside = not inside
-                return inside
-
-            def _point_in_polys(pt):
-                for poly in polygons_rot:
-                    if _point_in_poly(pt[0], pt[1], poly):
-                        return True
-                return False
-
-            def _intervals_at_x(x_pos: float):
-                eps = 1e-9
-                intervals = []
-                for poly in polygons_rot:
-                    hits = []
-                    n = len(poly)
-                    for i in range(n - 1):
-                        x1, y1 = poly[i]
-                        x2, y2 = poly[i + 1]
-                        if (x_pos < min(x1, x2) - eps) or (x_pos > max(x1, x2) + eps):
-                            continue
-                        if math.isclose(x1, x2, abs_tol=eps):
-                            if math.isclose(x_pos, x1, abs_tol=eps):
-                                hits.extend([y1, y2])
-                            continue
-                        t = (x_pos - x1) / (x2 - x1)
-                        if -eps <= t <= 1 + eps:
-                            y_hit = y1 + t * (y2 - y1)
-                            hits.append(y_hit)
-                    hits.sort()
-                    dedup = []
-                    for y in hits:
-                        if not dedup or abs(y - dedup[-1]) > 1e-6:
-                            dedup.append(y)
-                    if len(dedup) % 2 == 1:
-                        dedup = dedup[:-1]
-                    for i in range(0, len(dedup) - 1, 2):
-                        y0 = dedup[i]
-                        y1 = dedup[i + 1]
-                        if y1 > y0 + eps:
-                            intervals.append((y0, y1))
-                return intervals
-
-            # Bounds in rotated space
-            all_x = [p[0] for poly in polygons_rot for p in poly]
-            all_y = [p[1] for poly in polygons_rot for p in poly]
-            origin_x = min(all_x)
-            origin_y = min(all_y)
-            hinge_width = max(all_x) - origin_x
-            hinge_height = max(all_y) - origin_y
-
-            usable_width = hinge_width - 2 * padding
-            usable_height = hinge_height - 2 * padding
-            if usable_width <= 0 or usable_height <= 0:
-                continue
-
-            min_x = origin_x + padding
-            max_x = origin_x + hinge_width - padding
-            min_y = origin_y + padding
-            max_y = origin_y + hinge_height - padding
-
-            rot_fn = lambda pt: _rot(pt, cos_a, sin_a)
-
-            if pattern_type == "fishbone":
-                generate_fishbone_pattern(
-                    polygons_rot=polygons_rot,
-                    min_x=min_x,
-                    max_x=max_x,
-                    min_y=min_y,
-                    max_y=max_y,
-                    column_spacing=column_spacing,
-                    pattern_width=pattern_width,
-                    slot_length=slot_length,
-                    slot_gap=slot_gap,
-                    stroke_style=stroke_style,
-                    hinge_group=hinge_group,
-                    rot_fn=rot_fn,
-                    offset_factor=column_offset_factor,
-                    point_in_polys=_point_in_polys,
-                )
-                continue
-            if pattern_type == "cross":
-                generate_cross_pattern(
-                    polygons_rot=polygons_rot,
-                    min_x=min_x,
-                    max_x=max_x,
-                    min_y=min_y,
-                    max_y=max_y,
-                    cell_width=pattern_width,
-                    cell_height=slot_length,
-                    gap=slot_gap,
-                    spacing=column_spacing,
-                    stroke_style=stroke_style,
-                    hinge_group=hinge_group,
-                    rot_fn=rot_fn,
-                    offset_factor=column_offset_factor,
-                    point_in_polys=_point_in_polys,
-                )
-                continue
-            if pattern_type == "bezier":
-                generate_bezier_pattern(
-                    polygons_rot=polygons_rot,
-                    min_x=min_x,
-                    max_x=max_x,
-                    min_y=min_y,
-                    max_y=max_y,
-                    cell_width=pattern_width,
-                    cell_height=slot_length,
-                    gap=slot_gap,
-                    spacing=column_spacing,
-                    anchor_tip=opts.bezier_tip,
-                    anchor_center=opts.bezier_center,
-                    stroke_style=stroke_style,
-                    hinge_group=hinge_group,
-                    rot_fn=rot_fn,
-                    offset_factor=column_offset_factor,
-                    point_in_polys=_point_in_polys,
-                )
-                continue
-            if pattern_type == "wave":
-                generate_wave_pattern(
-                    polygons_rot=polygons_rot,
-                    min_x=min_x,
-                    max_x=max_x,
-                    min_y=min_y,
-                    max_y=max_y,
-                    cell_width=pattern_width,
-                    cell_height=slot_length,
-                    gap=slot_gap,
-                    spacing=column_spacing,
-                    param_a=opts.wave_a,
-                    param_b=opts.wave_b,
-                    stroke_style=stroke_style,
-                    hinge_group=hinge_group,
-                    rot_fn=rot_fn,
-                    offset_factor=column_offset_factor,
-                    point_in_polys=_point_in_polys,
-                )
-                continue
-            if pattern_type == "fabric":
-                generate_fabric_pattern(
-                    polygons_rot=polygons_rot,
-                    min_x=min_x,
-                    max_x=max_x,
-                    min_y=min_y,
-                    max_y=max_y,
-                    cell_width=pattern_width,
-                    cell_height=slot_length,
-                    gap=slot_gap,
-                    spacing=column_spacing,
-                    stroke_style=stroke_style,
-                    hinge_group=hinge_group,
-                    rot_fn=rot_fn,
-                    offset_factor=column_offset_factor,
-                    point_in_polys=_point_in_polys,
-                )
-                continue
-
-            generate_line_pattern(
-                intervals_fn=_intervals_at_x,
-                min_x=min_x,
-                max_x=max_x,
-                min_y=min_y,
-                max_y=max_y,
-                column_spacing=column_spacing,
-                slot_length=slot_length,
-                slot_gap=slot_gap,
-                stroke_style=stroke_style,
-                hinge_group=hinge_group,
-                rot_fn=rot_fn,
-                offset_factor=column_offset_factor,
+            segments = generate_hinge(
+                polygons=polygons,
+                shape_fn=shape_fn,
+                height=height,
+                width=width,
+                x_spacing=x_spacing,
+                y_spacing=y_spacing,
+                y_offset=y_offset,
+                angle_rad=angle_rad,
             )
+
+            segments_to_svg_paths(segments, stroke_style, hinge_group)
 
 
 if __name__ == "__main__":

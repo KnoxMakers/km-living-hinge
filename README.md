@@ -1,6 +1,6 @@
 # KM Living Hinge
 
-Inkscape extension to generate living hinge patterns for laser-cut flexures. Several different patterns are available.  Select any shape in your document, run the extension, choose the tab corresponding to the pattern you want to use, and apply.
+A highly opinionated Inkscape extension to generate living hinge patterns for laser-cut flexures. Several different patterns are available.  Select any shape in your document, run the extension, choose the tab corresponding to the pattern you want to use, and apply.
 
 ## Manual Installation
 1. Create the subdirectory km-living-hinge/ in your Inkscape extensions folder:
