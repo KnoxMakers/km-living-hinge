@@ -22,8 +22,11 @@ A highly opinionated Inkscape extension to generate living hinge patterns for la
 | Bezier | ![Bezier pattern](images/pattern-bezier.png) |
 | Wave | ![Wave pattern](images/pattern-wave.png) |
 | Fabric | ![Fabric pattern](images/pattern-fabric.png) |
+| Circle | ![Circle pattern](images/pattern-circle.png) |
 
-## Example
+## Screenshots
+
+![Screenshot](images/screenshot.png)
 
 Patterns truncate to shapes.
 ![Living Hinges](images/example1.png)
