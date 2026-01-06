@@ -23,6 +23,11 @@ A highly opinionated Inkscape extension to generate living hinge patterns for la
 | Wave | ![Wave pattern](images/pattern-wave.png) |
 | Fabric | ![Fabric pattern](images/pattern-fabric.png) |
 
+## Example
+
+Patterns truncate to shapes.
+![Living Hinges](images/example1.png)
+
 ## Acknowledgements
 Inspiration, examples, and code came from:
 
