@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <inkscape-extension xmlns="http://www.inkscape.org/namespace/inkscape/extension" id="km-living-hinge" version="1.0">
-  <name>KM Living Hinge</name>
+  <name>Living Hinge</name>
   <id>org.knoxmakers.km-living-hinge</id>
   <param name="units" type="optiongroup" appearance="combo" _gui-text="Units" default="mm">
     <option value="mm">mm</option>
@@ -52,7 +52,9 @@
   <effect>
     <object-type>all</object-type>
     <effects-menu>
-      <submenu _name="Knox Makers"/>
+      <submenu _name="Knox Makers">
+        <submenu _name="Laser"/>
+      </submenu>
     </effects-menu>
   </effect>
 </inkscape-extension>
