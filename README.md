@@ -26,7 +26,7 @@ A highly opinionated Inkscape extension to generate living hinge patterns for la
 
 ## Screenshots
 
-![Screenshot](images/screenshot.png)
+![Screencast](images/km-living-hinge.gif)
 
 Patterns truncate to shapes.
 ![Living Hinges](images/example1.png)
