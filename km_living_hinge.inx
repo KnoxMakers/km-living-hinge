@@ -39,6 +39,12 @@
       <param name="fabric_height" type="float" precision="2" _gui-text="Height" min="0.01" max="1000">10.0</param>
       <param name="fabric_width" type="float" precision="2" _gui-text="Width" min="0.01" max="1000">10.0</param>
     </page>
+    <page name="circle" _gui-text="Circle">
+      <param name="circle_height" type="float" precision="2" _gui-text="Height" min="0.01" max="1000">5.0</param>
+      <param name="circle_width" type="float" precision="2" _gui-text="Width" min="0.01" max="1000">5.0</param>
+      <param name="circle_x_spacing" type="float" precision="2" _gui-text="X Spacing" min="-1000" max="1000">0.0</param>
+      <param name="circle_y_spacing" type="float" precision="2" _gui-text="Y Spacing" min="-1000" max="1000">1.0</param>
+    </page>
   </param>
   <script>
     <command location="inx" interpreter="python">km_living_hinge.py</command>

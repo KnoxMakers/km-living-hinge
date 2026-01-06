@@ -39,11 +39,15 @@ class KMLivingHinge(inkex.EffectExtension):
         pars.add_argument("--wave_width", type=float, default=5.0)
         pars.add_argument("--fabric_height", type=float, default=10.0)
         pars.add_argument("--fabric_width", type=float, default=5.0)
+        pars.add_argument("--circle_height", type=float, default=5.0)
+        pars.add_argument("--circle_width", type=float, default=5.0)
+        pars.add_argument("--circle_x_spacing", type=float, default=2.0)
+        pars.add_argument("--circle_y_spacing", type=float, default=2.0)
 
     def effect(self) -> None:
         opts = self.options
         pattern_type = opts.type or "line"
-        if pattern_type not in ("line", "fishbone", "cross", "bezier", "wave", "fabric"):
+        if pattern_type not in ("line", "fishbone", "cross", "bezier", "wave", "fabric", "circle"):
             pattern_type = "line"
 
         selection = getattr(self.svg, "selection", None)
@@ -142,6 +146,11 @@ class KMLivingHinge(inkex.EffectExtension):
             width = _uu(opts.fabric_width, unit)
             x_spacing = 0
             y_spacing = 0
+        elif pattern_type == "circle":
+            height = _uu(opts.circle_height, unit)
+            width = _uu(opts.circle_width, unit)
+            x_spacing = _uu(opts.circle_x_spacing, unit)
+            y_spacing = _uu(opts.circle_y_spacing, unit)
         else:
             height = opts.line_height_pct / 100.0
             width = 0

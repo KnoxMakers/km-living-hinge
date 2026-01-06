@@ -81,6 +81,43 @@ def fabric_shape(height, width):
     return [line1, line2]
 
 
+def circle_shape(height, width):
+    kappa = 0.5522847498
+    rx = width / 2
+    ry = height / 2
+    cx = rx
+    cy = ry
+    kx = rx * kappa
+    ky = ry * kappa
+
+    return [
+        ('C', [
+            (cx + rx, cy),
+            (cx + rx, cy + ky),
+            (cx + kx, cy + ry),
+            (cx, cy + ry)
+        ]),
+        ('C', [
+            (cx, cy + ry),
+            (cx - kx, cy + ry),
+            (cx - rx, cy + ky),
+            (cx - rx, cy)
+        ]),
+        ('C', [
+            (cx - rx, cy),
+            (cx - rx, cy - ky),
+            (cx - kx, cy - ry),
+            (cx, cy - ry)
+        ]),
+        ('C', [
+            (cx, cy - ry),
+            (cx + kx, cy - ry),
+            (cx + rx, cy - ky),
+            (cx + rx, cy)
+        ]),
+    ]
+
+
 def line_config(height, width, x_spacing, y_spacing, bbox):
     _, _, _, bbox_height = bbox
     height = height * bbox_height
@@ -119,6 +156,11 @@ def fabric_config(height, width, x_spacing, y_spacing, bbox):
     return (height, width, x_spacing, y_spacing, y_offset)
 
 
+def circle_config(height, width, x_spacing, y_spacing, bbox):
+    y_offset = (height + y_spacing) / 2
+    return (height, width, x_spacing, y_spacing, y_offset)
+
+
 SHAPES = {
     'line': line_shape,
     'fishbone': fishbone_shape,
@@ -126,6 +168,7 @@ SHAPES = {
     'bezier': bezier_shape,
     'wave': wave_shape,
     'fabric': fabric_shape,
+    'circle': circle_shape,
 }
 
 CONFIGS = {
@@ -135,6 +178,7 @@ CONFIGS = {
     'bezier': bezier_config,
     'wave': wave_config,
     'fabric': fabric_config,
+    'circle': circle_config,
 }
 
 
